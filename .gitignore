@@ -1,0 +1,14 @@
+# Swift / Xcode
+.build/
+*.xcodeproj/
+xcuserdata/
+DerivedData/
+*.swp
+*.swo
+.DS_Store
+
+# Output
+Output/
+
+# Secrets
+.env
