@@ -14,6 +14,9 @@ struct Config {
     /// 遷移検知後のクールダウン（秒） - アニメーション中の連続キャプチャを防止
     var cooldownDuration: TimeInterval = 1.0
 
+    /// キャプチャ開始前の待機時間（秒） - 画面切り替えの猶予
+    var startDelay: TimeInterval = 5.0
+
     /// 画像保存先ディレクトリ
     var outputDirectory: String = "./Output/Images"
 
@@ -21,7 +24,10 @@ struct Config {
     var ocrOutputPath: String = "./Output/result.txt"
 
     /// OCR対象言語
-    var recognitionLanguages: [String] = ["ja", "en"]
+    var recognitionLanguages: [String] = ["ja", "ja-Vert", "en"]
+
+    /// OCRのみ実行（キャプチャをスキップ）
+    var ocrOnly: Bool = false
 
     /// LLM補正を有効にするか
     var enableLLMCorrection: Bool = false
@@ -78,6 +84,15 @@ struct Config {
                         config.captureRect = CGRect(x: parts[0], y: parts[1], width: parts[2], height: parts[3])
                     }
                 }
+            case "--delay":
+                i += 1
+                if i < args.count, let val = TimeInterval(args[i]) {
+                    config.startDelay = val
+                }
+            case "--no-delay":
+                config.startDelay = 0
+            case "--ocr-only":
+                config.ocrOnly = true
             case "--llm":
                 config.enableLLMCorrection = true
             case "--provider":
@@ -107,6 +122,9 @@ struct Config {
           --cooldown <sec>           遷移後のクールダウン（デフォルト: 1.0秒）
           --output <dir>             画像保存先（デフォルト: ./Output/Images）
           --rect <x,y,w,h>          キャプチャ領域（デフォルト: 全画面）
+          --delay <sec>              開始前の待機時間（デフォルト: 5秒）
+          --no-delay                 待機なしで即開始
+          --ocr-only                 キャプチャをスキップし既存画像のOCRのみ実行
           --llm                      LLMテキスト補正を有効化
           --provider <name>          LLMプロバイダ: anthropic|openai（デフォルト: anthropic）
           --help                     ヘルプを表示
