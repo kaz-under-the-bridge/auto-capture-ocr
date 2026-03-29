@@ -7,8 +7,14 @@ DerivedData/
 *.swo
 .DS_Store
 
+# Build output
+AutoCaptureOCR
+select-rect
+get-mouse-pos
+
 # Output
 Output/
+Output_*/
 
 # Secrets
 .env

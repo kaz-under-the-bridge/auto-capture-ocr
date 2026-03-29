@@ -26,29 +26,41 @@ struct AutoCaptureOCR {
         }
         print()
 
-        // Phase 1: 画面キャプチャ
-        let captureManager = CaptureManager(config: config)
+        if !config.ocrOnly {
+            // Phase 1: 画面キャプチャ
+            let captureManager = CaptureManager(config: config)
 
-        print("画面キャプチャを開始します。Enterキーで停止...")
-        print()
+            // 開始前の待機（画面切り替え猶予）
+            if config.startDelay > 0 {
+                let delaySec = Int(config.startDelay)
+                for remaining in stride(from: delaySec, through: 1, by: -1) {
+                    print("\r\(remaining)秒後にキャプチャを開始します... ", terminator: "")
+                    fflush(stdout)
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                }
+                print("\rキャプチャを開始しました。Enterキーで停止...      ")
+            } else {
+                print("画面キャプチャを開始します。Enterキーで停止...")
+            }
+            print()
 
-        // キャプチャをバックグラウンドで開始
-        let captureTask = Task {
+            // キャプチャをバックグラウンドで開始
             captureManager.startCapture()
-        }
 
-        // Enterキー待ち（メインスレッド）
-        _ = readLine()
-        captureManager.stopCapture()
-        captureTask.cancel()
+            // Enterキー待ち（メインスレッド）
+            _ = readLine()
+            captureManager.stopCapture()
 
-        let pageCount = captureManager.capturedPageCount
-        print()
-        print("キャプチャ完了: \(pageCount)ページ")
+            let pageCount = captureManager.capturedPageCount
+            print()
+            print("キャプチャ完了: \(pageCount)ページ")
 
-        guard pageCount > 0 else {
-            print("キャプチャされた画像がありません。終了します。")
-            return
+            guard pageCount > 0 else {
+                print("キャプチャされた画像がありません。終了します。")
+                return
+            }
+        } else {
+            print("OCRのみモード: \(config.outputDirectory) の画像を処理します")
         }
 
         // Phase 2: OCR処理

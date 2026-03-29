@@ -11,12 +11,16 @@ let package = Package(
         .executableTarget(
             name: "AutoCaptureOCR",
             path: "Sources/AutoCaptureOCR",
+            swiftSettings: [
+                .unsafeFlags(["-parse-as-library"]),
+            ],
             linkerSettings: [
                 .linkedFramework("ScreenCaptureKit"),
                 .linkedFramework("CoreGraphics"),
                 .linkedFramework("CoreImage"),
                 .linkedFramework("Vision"),
                 .linkedFramework("Accelerate"),
+                .linkedFramework("ImageIO"),
             ]
         )
     ]

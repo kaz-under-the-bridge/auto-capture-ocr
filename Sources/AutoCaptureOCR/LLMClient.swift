@@ -31,25 +31,78 @@ class LLMClient {
     // MARK: - Anthropic API
 
     private func callAnthropic(text: String, apiKey: String) async throws -> String {
-        // TODO: macOS上で実装
-        // 1. URLRequest を構築 (POST https://api.anthropic.com/v1/messages)
-        // 2. ヘッダー: x-api-key, anthropic-version, content-type
-        // 3. Body: model, max_tokens, messages (system + user)
-        // 4. URLSession.shared.data(for:) で送信
-        // 5. レスポンスJSONからテキストを抽出
-        fatalError("macOS上でビルド・実行してください")
+        let url = URL(string: "https://api.anthropic.com/v1/messages")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        request.setValue("application/json", forHTTPHeaderField: "content-type")
+
+        let body: [String: Any] = [
+            "model": "claude-sonnet-4-20250514",
+            "max_tokens": 4096,
+            "system": LLMClient.systemPrompt,
+            "messages": [
+                ["role": "user", "content": text]
+            ]
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw LLMError.apiError(statusCode: 0, message: "レスポンスを取得できません")
+        }
+        guard httpResponse.statusCode == 200 else {
+            let message = String(data: data, encoding: .utf8) ?? "不明なエラー"
+            throw LLMError.apiError(statusCode: httpResponse.statusCode, message: message)
+        }
+
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        guard let content = json?["content"] as? [[String: Any]],
+              let firstBlock = content.first,
+              let resultText = firstBlock["text"] as? String else {
+            throw LLMError.apiError(statusCode: 200, message: "レスポンスの解析に失敗")
+        }
+        return resultText
     }
 
     // MARK: - OpenAI API
 
     private func callOpenAI(text: String, apiKey: String) async throws -> String {
-        // TODO: macOS上で実装
-        // 1. URLRequest を構築 (POST https://api.openai.com/v1/chat/completions)
-        // 2. ヘッダー: Authorization: Bearer ..., content-type
-        // 3. Body: model, messages
-        // 4. URLSession.shared.data(for:) で送信
-        // 5. レスポンスJSONからテキストを抽出
-        fatalError("macOS上でビルド・実行してください")
+        let url = URL(string: "https://api.openai.com/v1/chat/completions")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "content-type")
+
+        let body: [String: Any] = [
+            "model": "gpt-4o",
+            "messages": [
+                ["role": "system", "content": LLMClient.systemPrompt],
+                ["role": "user", "content": text]
+            ]
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw LLMError.apiError(statusCode: 0, message: "レスポンスを取得できません")
+        }
+        guard httpResponse.statusCode == 200 else {
+            let message = String(data: data, encoding: .utf8) ?? "不明なエラー"
+            throw LLMError.apiError(statusCode: httpResponse.statusCode, message: message)
+        }
+
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        guard let choices = json?["choices"] as? [[String: Any]],
+              let firstChoice = choices.first,
+              let message = firstChoice["message"] as? [String: Any],
+              let resultText = message["content"] as? String else {
+            throw LLMError.apiError(statusCode: 200, message: "レスポンスの解析に失敗")
+        }
+        return resultText
     }
 
     /// テキスト補正用のシステムプロンプト
